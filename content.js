@@ -26,6 +26,10 @@ async function waitForContentLoad() {
 
 // Función para extraer datos de la tabla principal
 function extractTableData() {
+    
+    if (!document.querySelector('#BeForm\\:BarTable_data')) {
+        return [];
+    }
     const tableRows = document.querySelectorAll('#BeForm\\:BarTable_data tr');
     const data = [];
 
@@ -64,6 +68,10 @@ function extractPrevTableData() {
 
 // Función para extraer datos de la segunda tabla adicional
 function extractPrevLeftTableData() {
+    // Si la tabla no existe, devolver un array vacío
+    if (!document.querySelector('#BeForm\\:PrevLeftTable_data')) {
+        return [];
+    }
     const tableRows = document.querySelectorAll('#BeForm\\:PrevLeftTable_data tr');
     const data = [];
 
@@ -111,12 +119,10 @@ function dataToCSV(dataByYear, prevTableData, prevLeftTableData) {
 // Función para descargar el archivo CSV
 function downloadCSV(dataByYear) {
     // Obtener el texto del elemento span
-    const spanText = document.querySelector('span.w-6').textContent;
-    // Buscar la palabra que empieza con "A11"
-    const regex = /A11\w+/;
-    const match = spanText.match(regex);
+    const inputElement = document.querySelector('#BeForm\\:Atc_input');
+    const spanText = inputElement.value;
     // Extraer el nombre del archivo o asignar un nombre predeterminado
-    const fileName = match ? match[0].toLowerCase() + '.csv' : 'datos.csv';
+    const fileName = spanText + '.csv';
 
     // Extraer datos de las tablas adicionales
     const prevTableData = extractPrevTableData();
@@ -149,29 +155,34 @@ function downloadCSV(dataByYear) {
 // Función principal para cambiar de año, extraer datos y descargar CSV
 async function collectDataForYears() {
     const dataByYear = {};
-
-    for (let i = 0; i < document.querySelector('#BeForm\\:YearSelector_input').options.length; i++) {
-        // Re-seleccionar yearSelector en cada iteración
-        const yearSelector = document.querySelector('#BeForm\\:YearSelector_input');
-        yearSelector.selectedIndex = i;
-        const event = new Event('change', { bubbles: true });
-        yearSelector.dispatchEvent(event);
-
-        console.log(`Cambiado a ${yearSelector.options[i].text}`); // Añadir un log para ver el cambio
-
-        // Espera un breve momento para asegurarse de que el cambio se procese
-        await sleep(1500);
-
-        // Espera hasta que el contenido se haya cargado
-        await waitForContentLoad();
-
-        // Extrae los datos de la tabla
-        const tableData = extractTableData();
-        dataByYear[yearSelector.options[i].value] = tableData;
-
-        console.log(`Datos extraídos para el año ${yearSelector.options[i].text}`); // Añadir un log para ver los datos extraídos
+    // Si la tabla no existe pasar de hacer el bucle pero seguir llamando a donwloadCSV
+    if (!document.querySelector('#BeForm\\:BarTable_data')) {
+        downloadCSV(dataByYear);
+    }else {
+        for (let i = 0; i < document.querySelector('#BeForm\\:YearSelector_input').options.length; i++) {
+            // Re-seleccionar yearSelector en cada iteración
+            const yearSelector = document.querySelector('#BeForm\\:YearSelector_input');
+            yearSelector.selectedIndex = i;
+            const event = new Event('change', { bubbles: true });
+            yearSelector.dispatchEvent(event);
+    
+            console.log(`Cambiado a ${yearSelector.options[i].text}`); // Añadir un log para ver el cambio
+    
+            // Espera un breve momento para asegurarse de que el cambio se procese
+            await sleep(1500);
+    
+            // Espera hasta que el contenido se haya cargado
+            await waitForContentLoad();
+    
+            // Extrae los datos de la tabla
+            const tableData = extractTableData();
+            dataByYear[yearSelector.options[i].value] = tableData;
+    
+            console.log(`Datos extraídos para el año ${yearSelector.options[i].text}`); // Añadir un log para ver los datos extraídos
+        }
+    
+        // Descargar el CSV con los datos de todos los años y las tablas adicionales
+        downloadCSV(dataByYear);
     }
-
-    // Descargar el CSV con los datos de todos los años y las tablas adicionales
-    downloadCSV(dataByYear);
+    
 }
